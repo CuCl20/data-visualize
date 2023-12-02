@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>disaster visualize</title>
+  <script src="libs/d3.v7.js"></script>
+</head>
+
+
+<body>
+    <script>
+    // 设置地理投影
+    var projection = d3.geoMercator()
+            .scale(200)  // 调整缩放值
+            .center([66, 35])  // 调整中心点坐标
+            .translate([400, 300]);
+
+        // 创建路径生成器
+        var path = d3.geoPath().projection(projection);
+
+        // 创建 SVG 容器
+        var svg = d3.select("body").append("svg")
+            .attr("width", 800)
+            .attr("height", 600);
+
+        // 加载 GeoJSON 数据
+        d3.json('output.geojson').then(function(data) {
+            // 绘制地图
+            svg.selectAll('path')
+                .data(data.features)
+                .enter().append('path')
+                .attr('d', path)
+                .style('fill', 'steelblue')
+                .style('stroke', 'white');  // 添加白色边框
+        }).catch(function(error) {
+            console.error('Error loading GeoJSON:', error);
+        });
+
+    </script>
+</body>
