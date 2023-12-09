@@ -1,7 +1,7 @@
 import geopandas as gpd
 
 # 输入 Shapefile 文件路径
-shp_path = 'wmap/ne_10m_admin_0_countries_lakes.shp'
+shp_path = 'wmap/ne_110m_admin_0_countries_lakes.shp'
 
 # 读取 Shapefile
 gdf = gpd.read_file(shp_path)

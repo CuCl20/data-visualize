@@ -34,6 +34,56 @@
                 .attr('d', path)
                 .style('fill', 'steelblue')
                 .style('stroke', 'white');  // 添加白色边框
+                d3.csv('typhoon.csv').then(function (typhoonData) {
+            // 将经纬度坐标映射到地理坐标
+            typhoonData = typhoonData.slice(0, 500);
+            var typhoonPoints = typhoonData.map(function (d) {
+                return {
+                    id: d.台风编号,
+                    coordinates: [parseFloat(d.经度), parseFloat(d.纬度)]
+                };
+            });
+            console.log(typhoonPoints)
+
+            // 在地图上标记台风数据
+            svg.selectAll('circle')
+                .data(typhoonPoints)
+                .enter().append('circle')
+                .attr('cx', function (d) { return projection(d.coordinates)[0]; })
+                .attr('cy', function (d) { return projection(d.coordinates)[1]; })
+                .attr('r', 1)  // 圆点半径
+                .style('fill', 'red');  // 圆点颜色
+
+            // 绘制连接线，不连接不同台风之间的点
+            svg.selectAll('line')
+            .data(d3.pairs(typhoonPoints))  // 使用d3.pairs生成相邻点的对
+            .enter().append('line')
+            .attr('x1', function(d) {
+                // 如果两点属于同一台风，则连接
+                if (d[0].id === d[1].id) {
+                    return projection(d[0].coordinates)[0];
+                }
+            })
+            .attr('y1', function(d) {
+                // 如果两点属于同一台风，则连接
+                if (d[0].id === d[1].id) {
+                    return projection(d[0].coordinates)[1];
+                }
+            })
+            .attr('x2', function(d) {
+                // 如果两点属于同一台风，则连接
+                if (d[0].id === d[1].id) {
+                    return projection(d[1].coordinates)[0];
+                }
+            })
+            .attr('y2', function(d) {
+                // 如果两点属于同一台风，则连接
+                if (d[0].id === d[1].id) {
+                    return projection(d[1].coordinates)[1];
+                }
+            })
+            .style('stroke', 'blue');  // 线的颜色
+        });
         }).catch(function(error) {
             console.error('Error loading GeoJSON:', error);
         });
