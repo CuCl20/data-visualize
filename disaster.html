@@ -135,12 +135,14 @@
 
             // 绘制台风轨迹
             var typhoonPoints = filteredTyphoonData.map(function (d) {
+                //var timeParser = d3.timeParse("%Y-%m-%dT%H:%M:%S");
                 return {
                     id: d.台风编号,
                     coordinates: [parseFloat(d.经度), parseFloat(d.纬度)],
                     name: d.台风英文名称,
                     strength: d.台风强度,
-                    level: d.台风等级
+                    level: d.台风等级,
+                    time: d.当前台风时间
                 };
             });
 
@@ -152,7 +154,7 @@
                 .enter().append('circle')
                 .attr('cx', function (d) { return projection(d.coordinates)[0]; })
                 .attr('cy', function (d) { return projection(d.coordinates)[1]; })
-                .attr('r', 2)
+                .attr('r', 3)
                 .style('fill', 'red')
                 .on('mouseover', function(event, d) {
                     console.log('Mouseover event triggered for circle:', d);
@@ -163,7 +165,7 @@
 
                     // 鼠标悬停时显示提示
                     if (d.name && d.level) {
-                        var tooltipText = `台风名称: ${d.name}，台风等级: ${d.level}，台风强度：${d.strength}`;
+                        var tooltipText = `当前时间: ${d.time}，台风名称: ${d.name}，台风等级: ${d.level}，台风强度：${d.strength}`;
                         console.log('Tooltip Text:', tooltipText);
 
                         // 在适当的位置显示提示，可以根据需要调整
@@ -238,14 +240,17 @@
                     }
                 })
                 .style('stroke', 'blue')
-                .style('stroke-width', 2);
+                .style('stroke-width', 3);
 
 
             //绘制地震点
             var earthquakePoints = filteredEarthquakeData.map(function (d) {
                 return {
                     id: d.id,
-                    coordinates: [parseFloat(d.lon), parseFloat(d.lat)]
+                    coordinates: [parseFloat(d.lon), parseFloat(d.lat)],
+                    time: d.date,
+                    location: d.loc,
+                    level: d.level
                 };
             });
 
@@ -258,7 +263,66 @@
                 .attr('cx', function (d) { return projection(d.coordinates)[0]; })
                 .attr('cy', function (d) { return projection(d.coordinates)[1]; })
                 .attr('r', 3)
-                .style('fill', 'orange');
+                .style('fill', 'orange')
+                .on('mouseover', function(event, d) {
+                    console.log('Mouseover event triggered for circle:', d);
+
+                    // 清除之前的提示框
+                    svg.select('#uniqueTooltip').remove();
+                    svg.selectAll('.tooltip').remove();
+
+                    // 鼠标悬停时显示提示
+                    if (d.location && d.level) {
+                        var tooltipText = `地震时间: ${d.time}，地震等级: ${d.level}，地震位置：${d.location}`;
+                        console.log('Tooltip Text:', tooltipText);
+
+                        // 在适当的位置显示提示，可以根据需要调整
+                        var tooltipX = projection(d.coordinates)[0];
+                        var tooltipY = projection(d.coordinates)[1];
+                        console.log('Tooltip Position:', tooltipX, tooltipY);
+                        
+                        var tooltipBox = svg.append('g')
+                            .attr('class', 'tooltip')
+                            .attr('id', 'uniqueTooltip');  // 设置唯一的 ID
+
+                        // 添加一个矩形作为框
+                        var tooltipRect = tooltipBox.append('rect')
+                            .style('fill', 'white')  // 设置矩形的填充颜色
+                            .style('stroke', 'black')  // 设置矩形的边框颜色
+                            .style('stroke-width', '1px');  // 设置矩形的边框宽度
+
+                        // 添加文本到框内
+                        var tooltipTextElement = tooltipBox.append('text')
+                            .style('font-size', '12px')  // 设置字体大小
+                            .style('fill', 'green')  // 设置字体颜色
+                            .style('text-anchor', 'end')  // 设置文本锚点为结束位置，即右对齐
+                            .style('alignment-baseline', 'ideographic')  // 设置基线对齐方式
+                            .text(tooltipText);
+
+                        // 计算文本的宽度和高度
+                        var textBBox = tooltipTextElement.node().getBBox();
+
+                        // 设置矩形的位置和大小，使其包含文本
+                        tooltipRect.attr('x', svg.attr('width') - 10 - textBBox.width - 5)  // 从右边缘向左偏移 10 个像素
+                            .attr('y', svg.attr('height') - 10 - textBBox.height - 5)  // 从底部向上偏移 10 个像素
+                            .attr('width', textBBox.width + 10)  // 在文本宽度基础上增加 10 个像素
+                            .attr('height', textBBox.height + 10);  // 在文本高度基础上增加 10 个像素
+
+                        // 创建提示框，并为其设置唯一的 ID
+                        svg.append('text')
+                            .attr('class', 'tooltip')
+                            .attr('id', 'uniqueTooltip')  // 设置唯一的 ID
+                            .attr('x', svg.attr('width') - 10)  // 从右边缘向左偏移 10 个像素
+                            .attr('y', svg.attr('height') - 10)  // 从底部向上偏移 10 个像素
+                            .style('font-size', '12px')  // 设置字体大小
+                            .style('fill', 'green')  // 设置字体颜色
+                            .style('text-anchor', 'end')  // 设置文本锚点为结束位置，即右对齐
+                            .style('alignment-baseline', 'ideographic')  // 设置基线对齐方式
+                            .style('stroke', 'black')  // 设置边框颜色
+                            .style('stroke-width', '1px')  // 设置边框宽度
+                            .text(tooltipText);
+                    }
+                });
         }
 
         function zoomed(event) {
