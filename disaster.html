@@ -15,10 +15,41 @@
         height: 100vh;
     }
 
+    body {
+        margin: 0;
+        padding: 0;
+        background: url('1.jpg') no-repeat center center fixed;
+        background-size: cover;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
     #svg-container {
         width: 1200px;
         height: 800px;
+        border: 3px solid white; 
     }
+
+    label {
+        margin-right: 10px;
+        font-weight: bold;
+    }
+
+    #customTime {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    #currentTime {
+        margin-top: 10px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
 </style>
 
 <body style="display: grid; place-items: center;">
@@ -33,13 +64,15 @@
             width: 1200px;
             height: 800px;
         }
+        
     </style>
-    <label for="customTime">输入自定义时间：</label>
-    <input type="month" id="customTime" step="1" min="2010-01" max="2022-12">
+    <div id="customTimeContainer">
+        <label for="customTime">输入自定义时间：</label>
+        <input type="month" id="customTime" step="1" min="2010-01" max="2022-12">
+    </div>
     <button onclick="updateMapAndTracksCustom()">开始</button>
     <span id="currentTime"></span>
     <script>
-
         // 创建 SVG 容器
         var svg = d3.select("body").append("svg")
             .attr("id", "svg-container")
@@ -58,9 +91,14 @@
 
         // 应用缩放行为到容器元素
         svg.call(zoomHandler);
+
+        svg.append("rect")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("fill", "#87CEFA"); 
+
         // 创建路径生成器
         var path = d3.geoPath().projection(projection);
-
         var customTimeInput = document.getElementById("customTime");
         var currentTimeDisplay = document.getElementById("currentTime");
         var mapData;
@@ -146,8 +184,52 @@
                 };
             });
 
+            var colorScale = d3.scaleOrdinal()
+                .domain(['0-6', '6-8', '8-10', '10-12', '12+'])
+                .range(['green', 'blue', 'yellow', 'orange', 'red']);
+            
+            function getTyphoonLevelCategory(level) {
+                    if (level >= 0 && level <= 6) {
+                        return '0-6';
+                    } else if (level > 6 && level <= 8) {
+                        return '6-8';
+                    } else if (level > 8 && level <= 10) {
+                        return '8-10';
+                    } else if (level > 10 && level <= 12) {
+                        return '10-12';
+                    } else {
+                        return '12+';
+                    }
+                }        
+
             svg.selectAll('circle').remove();
             svg.selectAll('line').remove();
+
+            svg.selectAll('line')
+                .data(d3.pairs(typhoonPoints))
+                .enter().append('line')
+                .attr('x1', function (d) {
+                    if (d[0].id === d[1].id) {
+                        return projection(d[0].coordinates)[0];
+                    }
+                })
+                .attr('y1', function (d) {
+                    if (d[0].id === d[1].id) {
+                        return projection(d[0].coordinates)[1];
+                    }
+                })
+                .attr('x2', function (d) {
+                    if (d[0].id === d[1].id) {
+                        return projection(d[1].coordinates)[0];
+                    }
+                })
+                .attr('y2', function (d) {
+                    if (d[0].id === d[1].id) {
+                        return projection(d[1].coordinates)[1];
+                    }
+                })
+                .style('stroke', '#97FFFF')
+                .style('stroke-width', 3);
 
             svg.selectAll('circle')
                 .data(typhoonPoints)
@@ -155,7 +237,10 @@
                 .attr('cx', function (d) { return projection(d.coordinates)[0]; })
                 .attr('cy', function (d) { return projection(d.coordinates)[1]; })
                 .attr('r', 3)
-                .style('fill', 'red')
+                .style('fill', function(d) {
+                    // 根据等级设置颜色
+                    return colorScale(getTyphoonLevelCategory(d.level));
+                })
                 .on('mouseover', function(event, d) {
                     console.log('Mouseover event triggered for circle:', d);
 
@@ -216,33 +301,6 @@
                     }
                 });
 
-            svg.selectAll('line')
-                .data(d3.pairs(typhoonPoints))
-                .enter().append('line')
-                .attr('x1', function (d) {
-                    if (d[0].id === d[1].id) {
-                        return projection(d[0].coordinates)[0];
-                    }
-                })
-                .attr('y1', function (d) {
-                    if (d[0].id === d[1].id) {
-                        return projection(d[0].coordinates)[1];
-                    }
-                })
-                .attr('x2', function (d) {
-                    if (d[0].id === d[1].id) {
-                        return projection(d[1].coordinates)[0];
-                    }
-                })
-                .attr('y2', function (d) {
-                    if (d[0].id === d[1].id) {
-                        return projection(d[1].coordinates)[1];
-                    }
-                })
-                .style('stroke', 'blue')
-                .style('stroke-width', 3);
-
-
             //绘制地震点
             var earthquakePoints = filteredEarthquakeData.map(function (d) {
                 return {
@@ -250,11 +308,14 @@
                     coordinates: [parseFloat(d.lon), parseFloat(d.lat)],
                     time: d.date,
                     location: d.loc,
-                    level: d.level
+                    level: d.level,
+                    type: d.type
                 };
             });
 
-            svg.selectAll('earthquake-circle').remove();
+            var colorScale = d3.scaleLinear()
+                .domain([0, 8])  // 调整颜色映射的范围，从0到8
+                .range(['yellow', 'orange']);  // 在这里设置黄色和橙色的颜色
 
             svg.selectAll('earthquake-circle')
                 .data(earthquakePoints)
@@ -262,8 +323,13 @@
                 .attr('class', 'earthquake-circle')
                 .attr('cx', function (d) { return projection(d.coordinates)[0]; })
                 .attr('cy', function (d) { return projection(d.coordinates)[1]; })
-                .attr('r', 3)
-                .style('fill', 'orange')
+                .attr('r', function (d) {
+                    return Math.pow(d.level, 1.5);
+                })
+                .style('opacity', 0.6)
+                .style('fill', function (d) {
+                    return colorScale(d.level);
+                })
                 .on('mouseover', function(event, d) {
                     console.log('Mouseover event triggered for circle:', d);
 
@@ -273,7 +339,7 @@
 
                     // 鼠标悬停时显示提示
                     if (d.location && d.level) {
-                        var tooltipText = `地震时间: ${d.time}，地震等级: ${d.level}，地震位置：${d.location}`;
+                        var tooltipText = `地震时间: ${d.time}，地震等级: ${d.level}，震级: ${d.type}，地震位置：${d.location}`;
                         console.log('Tooltip Text:', tooltipText);
 
                         // 在适当的位置显示提示，可以根据需要调整
@@ -356,6 +422,5 @@
                     }
                 });
         }
-
     </script>
 </body>
